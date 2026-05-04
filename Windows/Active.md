@@ -1,4 +1,4 @@
-# 🔴 Active — WriteUp HTB
+# 🟢 Active — WriteUp HTB
 
 > **Plataforma:** Hack The Box  
 > **Dificultad:** Fácil  
