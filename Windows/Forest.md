@@ -72,6 +72,7 @@ PORT      STATE SERVICE
 
 Nmap done: 1 IP address (1 host up) scanned in 20.35 seconds
 ```
+![](/Images/forest1.png)<br>
 
 > 💡 **¿Por qué son relevantes estos puertos?**
 > - **53 (DNS):** Controlador de dominio resuelve nombres internos.
@@ -143,6 +144,8 @@ Service detection performed. Please report any incorrect results at https://nmap
 Nmap done: 1 IP address (1 host up) scanned in 281.19 seconds
 ```
 
+![](/Images/forest2.png)<br>
+
 > 💡 Los scripts de nmap nos revelan información crítica: el **dominio es `htb.local`** y el sistema operativo es **Windows Server 2016**. Esto confirma que estamos ante un controlador de dominio.
 
 También realizamos un escaneo UDP para completar el reconocimiento:
@@ -165,6 +168,7 @@ PORT      STATE SERVICE
 
 Nmap done: 1 IP address (1 host up) scanned in 73.35 seconds
 ```
+![](/Images/forest3.png)<br>
 
 ---
 
